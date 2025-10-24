@@ -1,0 +1,54 @@
+{
+	"name": "df_limpiar_productos",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_productos",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "cast1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          prd_id as string,",
+				"          prd_key as string,",
+				"          prd_nm as string,",
+				"          prd_cost as string,",
+				"          prd_line as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 derive(prd_id = trim(prd_id),",
+				"          prd_cost = trim(prd_cost),",
+				"          prd_line = trim(prd_line)) ~> derivedColumn1",
+				"derivedColumn1 cast(output(",
+				"          prd_id as integer,",
+				"          prd_cost as decimal(10,2) '000,000,000.000'",
+				"     ),",
+				"     errors: true) ~> cast1",
+				"cast1 filter(ERROR_FUNCTION('')) ~> filter1"
+			]
+		}
+	}
+}

@@ -1,0 +1,46 @@
+{
+	"name": "df_limpiar_productos_cat_mant",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_productos_cat_mant",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ID as string,",
+				"          CAT as string,",
+				"          SUBCAT as string,",
+				"          MAINTENANCE as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 derive(ID = trim(ID),",
+				"          CAT = trim(CAT),",
+				"          SUBCAT = trim(SUBCAT),",
+				"          MAINTENANCE = trim(MAINTENANCE)) ~> derivedColumn1",
+				"derivedColumn1 filter(ERROR_FUNCTION('')) ~> filter1"
+			]
+		}
+	}
+}

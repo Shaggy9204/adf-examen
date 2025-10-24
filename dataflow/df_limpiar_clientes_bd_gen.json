@@ -1,0 +1,51 @@
+{
+	"name": "df_limpiar_clientes_bd_gen",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_clientes_bd_gen",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "cast1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CID as string,",
+				"          BDATE as string,",
+				"          GEN as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 derive(CID = trim(CID),",
+				"          BDATE = trim(BDATE),",
+				"          GEN = trim(GEN)) ~> derivedColumn1",
+				"derivedColumn1 cast(output(",
+				"          BDATE as date 'yyyy-MM-dd'",
+				"     ),",
+				"     errors: true) ~> cast1",
+				"cast1 filter(ERROR_FUNCTION('')) ~> filter1"
+			]
+		}
+	}
+}
