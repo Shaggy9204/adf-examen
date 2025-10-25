@@ -33,6 +33,9 @@
 				},
 				{
 					"name": "filter1"
+				},
+				{
+					"name": "aggregate1"
 				}
 			],
 			"scriptLines": [
@@ -58,16 +61,24 @@
 				"          sls_sales = trim(sls_sales),",
 				"          sls_quantity = iifNull(trim(sls_quantity), '0'),",
 				"          sls_price = iifNull(trim(sls_price), '0')) ~> derivedColumn1",
-				"derivedColumn1 cast(output(",
+				"aggregate1 cast(output(",
 				"          sls_cust_id as integer,",
 				"          sls_order_dt as date 'yyyyMMdd',",
 				"          sls_ship_dt as date 'yyyyMMdd',",
-				"          sls_sales as decimal(19,2),",
+				"          sls_sales as decimal(19,4) '000,000,000.000',",
 				"          sls_quantity as integer,",
-				"          sls_price as decimal(19,2)",
+				"          sls_price as decimal(19,4) '000,000,000.000'",
 				"     ),",
 				"     errors: true) ~> cast1",
 				"source1 filter(!isNull(sls_ord_num) && !isNull(sls_prd_key) && !isNull(sls_cust_id)) ~> filter1",
+				"derivedColumn1 aggregate(groupBy(sls_ord_num,",
+				"          sls_prd_key),",
+				"     sls_cust_id = first(sls_cust_id),",
+				"          sls_order_dt = first(sls_order_dt),",
+				"          sls_ship_dt = first(sls_ship_dt),",
+				"          sls_sales = first(sls_sales),",
+				"          sls_quantity = first(sls_quantity),",
+				"          sls_price = first(sls_price)) ~> aggregate1",
 				"cast1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
