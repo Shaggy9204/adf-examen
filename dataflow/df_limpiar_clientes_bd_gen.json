@@ -30,6 +30,9 @@
 				},
 				{
 					"name": "cast1"
+				},
+				{
+					"name": "aggregate1"
 				}
 			],
 			"scriptLines": [
@@ -45,13 +48,17 @@
 				"source1 derive(CID = trim(CID),",
 				"          BDATE = trim(BDATE),",
 				"          GEN = case(\r",
-				"    upper(trim(GEN)) == 'MALE' || upper(trim(GEN)) == 'M', 'Masculino', \r",
-				"    upper(trim(GEN)) == 'FEMALE' || upper(trim(GEN)) == 'F', 'Femenino', 'Desconocido'\r",
-				"    )) ~> derivedColumn1",
-				"derivedColumn1 cast(output(",
+				"    upper(trim(GEN)) == 'MALE' || upper(trim(GEN)) == 'M', 'Masculino',\r",
+				"    upper(trim(GEN)) == 'FEMALE' || upper(trim(GEN)) == 'F', 'Femenino',\r",
+				"    'N/A'\r",
+				")) ~> derivedColumn1",
+				"aggregate1 cast(output(",
 				"          BDATE as date 'yyyy-MM-dd'",
 				"     ),",
 				"     errors: true) ~> cast1",
+				"derivedColumn1 aggregate(groupBy(CID),",
+				"     BDATE = first(BDATE),",
+				"          GEN = first(GEN)) ~> aggregate1",
 				"cast1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
