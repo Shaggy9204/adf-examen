@@ -15,16 +15,21 @@
 					"name": "source1"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_silver_clientes_bd_gen",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
 				},
 				{
 					"name": "cast1"
-				},
-				{
-					"name": "filter1"
 				}
 			],
 			"scriptLines": [
@@ -39,12 +44,34 @@
 				"     format: 'table') ~> source1",
 				"source1 derive(CID = trim(CID),",
 				"          BDATE = trim(BDATE),",
-				"          GEN = trim(GEN)) ~> derivedColumn1",
+				"          GEN = case(\r",
+				"    upper(trim(GEN)) == 'MALE' || upper(trim(GEN)) == 'M', 'Masculino', \r",
+				"    upper(trim(GEN)) == 'FEMALE' || upper(trim(GEN)) == 'F', 'Femenino', 'Desconocido'\r",
+				"    )) ~> derivedColumn1",
 				"derivedColumn1 cast(output(",
 				"          BDATE as date 'yyyy-MM-dd'",
 				"     ),",
 				"     errors: true) ~> cast1",
-				"cast1 filter(ERROR_FUNCTION('')) ~> filter1"
+				"cast1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          CID as string,",
+				"          BDATE as date,",
+				"          GEN as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          CID,",
+				"          BDATE,",
+				"          GEN",
+				"     )) ~> sink1"
 			]
 		}
 	}

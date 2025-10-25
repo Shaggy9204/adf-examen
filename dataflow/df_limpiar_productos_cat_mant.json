@@ -15,13 +15,18 @@
 					"name": "source1"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_silver_productos_cat_mant",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
-				},
-				{
-					"name": "filter1"
 				}
 			],
 			"scriptLines": [
@@ -35,11 +40,32 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> source1",
-				"source1 derive(ID = trim(ID),",
-				"          CAT = trim(CAT),",
-				"          SUBCAT = trim(SUBCAT),",
-				"          MAINTENANCE = trim(MAINTENANCE)) ~> derivedColumn1",
-				"derivedColumn1 filter(ERROR_FUNCTION('')) ~> filter1"
+				"source1 derive(ID = trim(iifNull(ID, 'N/A')),",
+				"          CAT = trim(iifNull(CAT, 'Desconocido')),",
+				"          SUBCAT = trim(iifNull(SUBCAT, 'Desconocido')),",
+				"          MAINTENANCE = trim(iifNull(MAINTENANCE, 'No'))) ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          ID as string,",
+				"          CAT as string,",
+				"          SUBCAT as string,",
+				"          MAINTENANCE as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ID,",
+				"          CAT,",
+				"          SUBCAT,",
+				"          MAINTENANCE",
+				"     )) ~> sink1"
 			]
 		}
 	}
