@@ -27,6 +27,9 @@
 			"transformations": [
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "aggregate1"
 				}
 			],
 			"scriptLines": [
@@ -40,7 +43,9 @@
 				"     format: 'table') ~> source1",
 				"source1 derive(CID = trim(CID),",
 				"          CNTRY = iifNull(CNTRY, 'N/A')) ~> derivedColumn1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"derivedColumn1 aggregate(groupBy(CID),",
+				"     CNTRY = first(CNTRY)) ~> aggregate1",
+				"aggregate1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          CID as string,",
