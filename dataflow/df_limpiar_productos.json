@@ -65,7 +65,7 @@
 				"          prd_nm = first(prd_nm),",
 				"          prd_cost = first(prd_cost),",
 				"          prd_line = first(prd_line)) ~> aggregate1",
-				"source1 filter(!isNull(prd_key) && trim(prd_key) != '' && !isNull(prd_id) && trim(prd_id) != '') ~> filter1",
+				"source1 filter(!isNull(prd_id) && trim(prd_id) != '' && trim(prd_id) != '0' && !isNull(prd_key) && trim(prd_key) != '') ~> filter1",
 				"cast1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
