@@ -1,0 +1,181 @@
+{
+	"name": "df_limpiar_unir_clientes",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_clientes",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_sql_clientes_location",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_sql_clientes_bd_gen",
+						"type": "DatasetReference"
+					},
+					"name": "source3"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_silver_clientes",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "aggregate2"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "aggregate3"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "join2"
+				},
+				{
+					"name": "derivedColumn3"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CST_ID as string,",
+				"          CST_KEY as string,",
+				"          CST_FIRSTNAME as string,",
+				"          CST_LASTNAME as string,",
+				"          CST_MARITAL_STATUS as string,",
+				"          CST_GNRD as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source(output(",
+				"          CID as string,",
+				"          CNTRY as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source2",
+				"source(output(",
+				"          CID as string,",
+				"          BDATE as string,",
+				"          GEN as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source3",
+				"source1 filter(!isNull(CST_ID) && trim(CST_ID) != '' && trim(CST_ID) != '0' && !isNull(CST_KEY) && trim(CST_KEY) != '') ~> filter1",
+				"filter1 aggregate(groupBy(CST_ID),",
+				"     CST_KEY = last(trim(CST_KEY)),",
+				"          CST_FIRSTNAME = last(trim(iifNull(CST_FIRSTNAME, 'N/A'))),",
+				"          CST_LASTNAME = last(trim(iifNull(CST_LASTNAME, 'N/A'))),",
+				"          CST_MARITAL_STATUS = last(trim(iifNull(CST_MARITAL_STATUS, 'U'))),",
+				"          CST_GNRD = last(trim(iifNull(CST_GNRD, 'U')))) ~> aggregate1",
+				"source2 derive(LlaveJoin_Location = replace(trim(CID), '-', ''),",
+				"          CNTRY_Limpio = trim(iifNull(CNTRY, 'Desconocido'))) ~> derivedColumn1",
+				"derivedColumn1 aggregate(groupBy(LlaveJoin_Location),",
+				"     CNTRY = first(CNTRY_Limpio)) ~> aggregate2",
+				"source3 derive(LlaveJoin_DBGen = substring(trim(CID), 4, 100),",
+				"          BDATE_Limpio = trim(BDATE),",
+				"          GEN_Limpio = trim(GEN)) ~> derivedColumn2",
+				"derivedColumn2 aggregate(groupBy(LlaveJoin_DBGen),",
+				"     BDATE_str = first(BDATE_Limpio),",
+				"          GEN_str = first(GEN_Limpio)) ~> aggregate3",
+				"aggregate1, aggregate2 join(CST_KEY == LlaveJoin_Location,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1, aggregate3 join(CST_KEY == LlaveJoin_DBGen,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join2",
+				"join2 derive(CST_ID_Final = toInteger(CST_ID),",
+				"          BDATE_Final = toDate(BDATE_str, 'yyyy-MM-dd'),",
+				"          GEN_Final = case(upper(GEN_str) == 'MALE', 'Masculino', upper(GEN_str) == 'FEMALE', 'Femenino', 'Indefinido')) ~> derivedColumn3",
+				"derivedColumn3 select(mapColumn(",
+				"          CST_ID = CST_ID_Final,",
+				"          CST_KEY,",
+				"          CST_FIRSTNAME,",
+				"          CST_LASTNAME,",
+				"          CST_MARITAL_STATUS,",
+				"          CST_GNRD,",
+				"          CNTRY,",
+				"          BDATE = BDATE_Final,",
+				"          GEN = GEN_Final",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          CST_ID as integer,",
+				"          CST_KEY as string,",
+				"          CST_FIRSTNAME as string,",
+				"          CST_LASTNAME as string,",
+				"          CST_MARITAL_STATUS as string,",
+				"          CST_GNRD as string,",
+				"          CNTRY as string,",
+				"          BDATE as date,",
+				"          GEN as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          CST_ID,",
+				"          CST_KEY,",
+				"          CST_FIRSTNAME,",
+				"          CST_LASTNAME,",
+				"          CST_MARITAL_STATUS,",
+				"          CST_GNRD,",
+				"          CNTRY,",
+				"          BDATE,",
+				"          GEN",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

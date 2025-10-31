@@ -1,0 +1,152 @@
+{
+	"name": "df_limpiar_unir_productos",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_productos",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_sql_productos_cat_mant",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_silver_productos",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "aggregate2"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "cast1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          PRD_ID as string,",
+				"          PRD_KEY as string,",
+				"          PRD_NM as string,",
+				"          PRD_COST as string,",
+				"          PRD_LINE as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source(output(",
+				"          ID as string,",
+				"          CAT as string,",
+				"          MAINTENANCE as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source2",
+				"source1 filter(!isNull(PRD_ID) && trim(PRD_ID) != '' && trim(PRD_ID) != '0' && !isNull(PRD_KEY) && trim(PRD_KEY) != '') ~> filter1",
+				"filter1 derive(PRD_ID_Str = trim(PRD_ID),",
+				"          PRD_KEY_Limpio = trim(PRD_KEY),",
+				"          PRD_NM_Limpio = trim(iifNull(PRD_NM, 'N/A')),",
+				"          PRD_COST_Str = iifNull(trim(PRD_COST), '0.0'),",
+				"          PRD_LINE_Limpio = trim(iifNull(PRD_LINE, 'U')),",
+				"          LlaveJoin_Prod = substring(trim(PRD_KEY), 1, 5)) ~> derivedColumn1",
+				"derivedColumn1 aggregate(groupBy(PRD_KEY_Limpio),",
+				"     PRD_ID = first(PRD_ID_Str),",
+				"          PRD_NM = first(PRD_NM_Limpio),",
+				"          PRD_COST = first(PRD_COST_Str),",
+				"          PRD_LINE = first(PRD_LINE_Limpio),",
+				"          LlaveJoin = first(LlaveJoin_Prod)) ~> aggregate1",
+				"source2 derive(LlaveJoin_Cat = replace(trim(ID), '_', '-'),",
+				"          CAT_Limpio = trim(iifNull(CAT, 'Desconocido')),",
+				"          MAINTENANCE_Limpio = trim(iifNull(MAINTENANCE, 'No'))) ~> derivedColumn2",
+				"derivedColumn2 aggregate(groupBy(LlaveJoin_Cat),",
+				"     CAT = first(CAT_Limpio),",
+				"          MAINTENANCE = first(MAINTENANCE_Limpio)) ~> aggregate2",
+				"aggregate1, aggregate2 join(LlaveJoin == LlaveJoin_Cat,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          PRD_ID,",
+				"          PRD_KEY = PRD_KEY_Limpio,",
+				"          PRD_NM,",
+				"          PRD_COST,",
+				"          PRD_LINE,",
+				"          CAT,",
+				"          MAINTENANCE",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 cast(output(",
+				"          PRD_ID as integer,",
+				"          PRD_COST as decimal(19,2)",
+				"     ),",
+				"     errors: true) ~> cast1",
+				"cast1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          PRD_ID as integer,",
+				"          PRD_KEY as string,",
+				"          PRD_NM as string,",
+				"          PRD_COST as string,",
+				"          PRD_LINE as string,",
+				"          CAT as string,",
+				"          MAINTENANCE as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          PRD_ID,",
+				"          PRD_KEY,",
+				"          PRD_NM,",
+				"          PRD_COST,",
+				"          PRD_LINE,",
+				"          CAT,",
+				"          MAINTENANCE",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

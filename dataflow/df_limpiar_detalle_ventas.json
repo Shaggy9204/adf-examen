@@ -1,0 +1,131 @@
+{
+	"name": "df_limpiar_detalle_ventas",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_detalle_venta",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sql_silver_detalle_venta",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "cast1"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          SLS_ORD_NUM as string,",
+				"          SLS_PRD_KEY as string,",
+				"          SLS_CUST_ID as string,",
+				"          SLS_ORDER_DT as string,",
+				"          SLS_SHIP_DT as string,",
+				"          SLS_SALES as string,",
+				"          SLS_QUANTITY as string,",
+				"          SLS_PRICE as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 filter(!isNull(SLS_ORD_NUM) && trim(SLS_ORD_NUM) != '' &&",
+				"!isNull(SLS_PRD_KEY) && trim(SLS_PRD_KEY) != '' &&",
+				"!isNull(SLS_CUST_ID) && trim(SLS_CUST_ID) != '') ~> filter1",
+				"filter1 derive(sls_ord_num_limpio = trim(SLS_ORD_NUM),",
+				"          sls_prd_key_limpio = trim(SLS_PRD_KEY),",
+				"          sls_cust_id_str = trim(SLS_CUST_ID),",
+				"          sls_order_dt_str = trim(SLS_ORDER_DT),",
+				"          sls_ship_dt_str = trim(SLS_SHIP_DT),",
+				"          sls_sales_str = iifNull(trim(SLS_SALES), '0'),",
+				"          sls_quantity_str = iifNull(trim(SLS_QUANTITY), '0'),",
+				"          sls_price_str = iifNull(trim(SLS_PRICE), '0')) ~> derivedColumn1",
+				"derivedColumn1 aggregate(groupBy(sls_ord_num_limpio,",
+				"          sls_prd_key_limpio),",
+				"     SLS_CUST_ID = first(sls_cust_id_str),",
+				"          SLS_ORDER_DT = first(sls_order_dt_str),",
+				"          SLS_SHIP_DT = first(sls_ship_dt_str),",
+				"          SLS_SALES = first(sls_sales_str),",
+				"          SLS_QUANTITY = first(sls_quantity_str),",
+				"          SLS_PRICE = first(sls_price_str)) ~> aggregate1",
+				"aggregate1 cast(output(",
+				"          SLS_ORDER_DT as date 'yyyyMMdd',",
+				"          SLS_SHIP_DT as date 'yyyyMMdd',",
+				"          SLS_SALES as integer,",
+				"          SLS_QUANTITY as integer,",
+				"          SLS_PRICE as integer",
+				"     ),",
+				"     errors: true) ~> cast1",
+				"cast1 select(mapColumn(",
+				"          SLS_ORD_NUM = sls_ord_num_limpio,",
+				"          SLS_PRD_KEY = sls_prd_key_limpio,",
+				"          SLS_CUST_ID,",
+				"          SLS_ORDER_DT,",
+				"          SLS_SHIP_DT,",
+				"          SLS_SALES,",
+				"          SLS_QUANTITY,",
+				"          SLS_PRICE",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          SLS_ORD_NUM as string,",
+				"          SLS_PRD_KEY as string,",
+				"          SLS_CUST_ID as string,",
+				"          SLS_ORDER_DT as string,",
+				"          SLS_SHIP_DT as string,",
+				"          SLS_SALES as integer,",
+				"          SLS_QUANTITY as integer,",
+				"          SLS_PRICE as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          SLS_ORD_NUM,",
+				"          SLS_PRD_KEY,",
+				"          SLS_CUST_ID,",
+				"          SLS_ORDER_DT,",
+				"          SLS_SHIP_DT,",
+				"          SLS_SALES,",
+				"          SLS_QUANTITY,",
+				"          SLS_PRICE",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
