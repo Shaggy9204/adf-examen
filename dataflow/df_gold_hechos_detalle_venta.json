@@ -13,6 +13,20 @@
 						"type": "DatasetReference"
 					},
 					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_sql_gold_dim_fecha",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_sql_gold_dim_clientes",
+						"type": "DatasetReference"
+					},
+					"name": "source3"
 				}
 			],
 			"sinks": [
@@ -24,7 +38,17 @@
 					"name": "sink1"
 				}
 			],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "lookup2"
+				},
+				{
+					"name": "select1"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          SLS_ORD_NUM as string,",
@@ -39,7 +63,43 @@
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     query: 'select \\n    SLS_ORD_NUM as SLS_ORD_NUM,\\n    SLS_PRD_KEY as SLS_PRD_KEY,\\n    SLS_CUST_ID as SLS_CUST_ID,\\n    SLS_SALES as SLS_SALES,\\n    SLS_QUANTITY as SLS_QUANTITY,\\n    SLS_PRICE as SLS_PRICE\\nfrom \\n    SILVER.DETALLE_VENTA',",
 				"     format: 'query') ~> source1",
-				"source1 sink(allowSchemaDrift: true,",
+				"source(output(",
+				"          PRD_KEY as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select PRD_KEY from GOLD.DIM_PRODUCTOS',",
+				"     format: 'query') ~> source2",
+				"source(output(",
+				"          CST_ID as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select CST_ID from GOLD.DIM_CLIENTES',",
+				"     format: 'query') ~> source3",
+				"source1, source2 lookup(SLS_PRD_KEY == PRD_KEY,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1, source3 lookup(SLS_CUST_ID == CST_ID,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup2",
+				"lookup2 select(mapColumn(",
+				"          SLS_ORD_NUM,",
+				"          SLS_PRD_KEY,",
+				"          SLS_CUST_ID,",
+				"          SLS_SALES,",
+				"          SLS_QUANTITY,",
+				"          SLS_PRICE,",
+				"          PRD_KEY,",
+				"          CST_ID",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          ID_HECHOS as integer,",
