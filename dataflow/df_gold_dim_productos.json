@@ -37,7 +37,7 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     query: 'select \\n    PRD_KEY as PRD_KEY,\\n    PRD_NM as PRD_NM,\\n    PRD_COST as PRD_COST,\\n    PRD_LINE as PRD_LINE,\\n    CAT as CAT,\\n    MAINTENANCE as MAINTENANCE\\nfrom \\n    SILVER.PRODUCTOS',",
+				"     query: 'select \\n    PRD_KEY, \\n    MAX(PRD_NM) as PRD_NM,\\n    MAX(PRD_COST) as PRD_COST,\\n    MAX(PRD_LINE) as PRD_LINE,\\n    MAX(CAT) as CAT,\\n    MAX(MAINTENANCE) as MAINTENANCE\\nfrom \\n    SILVER.PRODUCTOS\\ngroup by\\n    PRD_KEY',",
 				"     format: 'query') ~> source1",
 				"source1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
