@@ -39,7 +39,7 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     query: 'select \\n    CST_ID as CST_ID,\\n    CST_FIRSTNAME as CST_FIRSTNAME,\\n    CST_LASTNAME as CST_LASTNAME,\\n    CST_MARITAL_STATUS as CST_MARITAL_STATUS,\\n    CST_GNRD as CST_GNRD,\\n    CNTRY as CNTRY,\\n    BDATE as BDATE,\\n    GEN as GEN\\nfrom \\n    SILVER.CLIENTES',",
+				"     query: 'select \\n    CST_ID, \\n    MAX(CST_FIRSTNAME) as CST_FIRSTNAME,\\n    MAX(CST_LASTNAME) as CST_LASTNAME,\\n    MAX(CST_MARITAL_STATUS) as CST_MARITAL_STATUS,\\n    MAX(CST_GNRD) as CST_GNRD,\\n    MAX(CNTRY) as CNTRY,\\n    MAX(BDATE) as BDATE,\\n    MAX(GEN) as GEN\\nfrom \\n    SILVER.CLIENTES\\ngroup by\\n    CST_ID',",
 				"     format: 'query') ~> source1",
 				"source1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
